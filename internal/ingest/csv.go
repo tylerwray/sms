@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"sync"
 
 	"github.com/tylerwray/sms/internal/messenger"
 )
@@ -18,7 +19,9 @@ func FromCSV(ms *messenger.Service, fileName string) {
 
 	r := csv.NewReader(f)
 
-	// var wg sync.WaitGroup
+	var wg sync.WaitGroup
+	maxGoroutines := 50
+	guard := make(chan struct{}, maxGoroutines)
 
 	for {
 		record, err := r.Read()
@@ -31,20 +34,22 @@ func FromCSV(ms *messenger.Service, fileName string) {
 			log.Fatal(err)
 		}
 
-		var smsXID = record[0]
-		var status = record[1]
-		// wg.Add(1)
+		wg.Add(1)
 
-		// go func(smsXID, status string) {
-		// defer wg.Done()
+		guard <- struct{}{}
 
-		err = ms.UpdateMessageStatus(smsXID, status)
+		go func(smsXID, status string) {
+			defer wg.Done()
 
-		if err != nil {
-			log.Printf("ERROR: Could not update message status for smsXID:%s. Error: %v\n", smsXID, err)
-		}
-		// }(record[0], record[1])
+			err = ms.UpdateMessageStatus(smsXID, status)
+
+			if err != nil {
+				log.Printf("ERROR: Could not update message status for smsXID:%s. Error: %v\n", smsXID, err)
+			}
+
+			<-guard
+		}(record[0], record[1])
 	}
 
-	// wg.Wait()
+	wg.Wait()
 }
