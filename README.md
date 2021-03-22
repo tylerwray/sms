@@ -5,7 +5,7 @@ We have a big problem! The smurfs are in quarantine and they can't communicate d
 ## Start Server
 
 1. Install go `1.16`.
-2. Run `go run cmd/server/main.go` to start the server quickly.
+2. Run `bin/server` to start the server quickly.
 3. Go to `http://localhost:8080/conversations/1956/messages` in the browser to see a response.
 
 > Run `bin/server` to build and run a production like server.
