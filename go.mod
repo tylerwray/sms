@@ -1,4 +1,4 @@
-module github.com/tylerwray/smurf_messaging_service
+module github.com/tylerwray/sms
 
 go 1.16
 

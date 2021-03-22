@@ -1,0 +1,5 @@
+#!/bin/bash
+
+go build -o ingest cmd/ingest/main.go
+
+./ingest "$1"

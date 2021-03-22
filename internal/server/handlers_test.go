@@ -1,4 +1,4 @@
-package main
+package server_test
 
 import (
 	"bytes"
@@ -8,30 +8,32 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jmoiron/sqlx"
-	"github.com/julienschmidt/httprouter"
+	"github.com/tylerwray/sms/internal/messenger"
+	"github.com/tylerwray/sms/internal/server"
 )
 
 func TestGetConversationMessages(t *testing.T) {
 	db, mock, err := sqlmock.New()
-	defer db.Close()
-	sqlxDB := sqlx.NewDb(db, "sqlmock")
-
-	rows := sqlmock.NewRows([]string{"inserted_at", "message", "status", "object"}).
-		AddRow("2021-06-17T18:19:35Z", "Hello, Moto", "pending", "message")
-
-	mock.ExpectQuery("^SELECT (.+) FROM messages m").WillReturnRows(rows)
 
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	router := httprouter.New()
-	router.GET("/conversations/:conversationID/messages", getMessagesHandler(&messageService{sqlxDB}))
+	defer db.Close()
+
+	sqlxDB := sqlx.NewDb(db, "sqlmock")
+
+	rows := sqlmock.NewRows([]string{"inserted_at", "message", "status"}).
+		AddRow("2021-06-17T18:19:35Z", "Hello, Moto", "pending")
+
+	mock.ExpectQuery("^SELECT (.+) FROM messages m").WillReturnRows(rows)
 
 	req, _ := http.NewRequest("GET", "/conversations/1/messages", nil)
 	rr := httptest.NewRecorder()
 
-	router.ServeHTTP(rr, req)
+	ms := messenger.NewService(sqlxDB)
+	h := server.NewHandler(ms)
+	h.ServeHTTP(rr, req)
 
 	if status := rr.Code; status != http.StatusOK {
 		t.Errorf("handler returned wrong status code: got %v want %v",
